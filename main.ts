@@ -53,7 +53,9 @@ function step(e: Ema, close: number): void {
 
 const fast: Ema = { span: FAST_SPAN, warm: [], value: null };
 const slow: Ema = { span: SLOW_SPAN, warm: [], value: null };
-/** Closes of CBBTC bars, in arrival order. */
+/** Closes of CBBTC bars, in arrival order, capped at the last CONFIRM_BARS + 1:
+ *  only the latest close and the one CONFIRM_BARS back are ever read, so older
+ *  closes are dropped instead of growing the array for the whole session. */
 const closes: bigint[] = [];
 /** fast - slow after the previous bar, once both are set. */
 let gap: number | null = null;
@@ -66,6 +68,7 @@ await runBars({
       if (bar.symbol !== SYMBOL) continue;
       const c = Number(bar.c);
       closes.push(BigInt(bar.c));
+      if (closes.length > CONFIRM_BARS + 1) closes.splice(0, closes.length - (CONFIRM_BARS + 1));
       step(fast, c);
       step(slow, c);
       gap = now;
